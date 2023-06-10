@@ -3,6 +3,9 @@ import select
 import sys
 import time
 import os
+import threading
+
+sys.path.append('../Client')
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
@@ -13,11 +16,13 @@ class ftpServer:
         self.user = user
         self.password = password
         self.address = (self.host, self.port)
-        self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.inputSocket = []
+        self.buffer = 1024
+        self.serverSocket = None
+        self.threads = []
 
     def bind(self):
         try:
+            self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.serverSocket.bind(self.address)
             self.serverSocket.listen(5)
@@ -78,7 +83,8 @@ class ftpServer:
     #         print('command not found')
 
     def run(self):
-        self.inputSocket = [self.serverSocket]
+        self.bind()
+        inputSocket = [self.serverSocket]
 
         try:
             while True:
@@ -87,7 +93,7 @@ class ftpServer:
                 for sock in readList:
                     if sock == self.serverSocket:
                         client_socket, client_address = self.serverSocket.accept()
-                        self.inputSocket.append(client_socket)
+                        inputSocket.append(client_socket)
 
                     else:
                         data = sock.recv(1024)
