@@ -8,6 +8,7 @@ import threading
 sys.path.append('../Client')
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
+BUFFER = 1024
 
 class ftpServer:
     def __init__(self, host, port, user, password):
@@ -31,6 +32,10 @@ class ftpServer:
         except:
             print('failed to bind!')
 
+    
+        
+        
+
     # not fix
     def getList(self):
         list = os.listdir()
@@ -42,7 +47,7 @@ class ftpServer:
         print(pwd)
         print('200, success')
 
-    # not fix
+    # Change directory (not fix)
     def changeDir(self, path):
         try:
             cwd = os.chdir(path)
@@ -50,6 +55,7 @@ class ftpServer:
         except:
             print('400, directory not found')
 
+    # Create a new directory
     def makeDir(self, dirname):
         if os.path.exists(dirname):
            raise Exception('500, directory already exist')
@@ -57,10 +63,23 @@ class ftpServer:
             os.makedirs(dirname)
             print('200, directory created')
 
+    # Download file
+    def downloadFile(self, filename, client_socket):
+        with open(filename, 'rb') as f:
+            content = f.read()
 
-    def downloadFile(self, filename):
-    def uploadFile(self, filename):
+        client_socket.sendall(content)
+        print('200, file downloaded successfully')
 
+    # Upload file
+    def uploadFile(self, filename, client_socket):
+        with open(filename, 'wb') as f:
+            content = client_socket.recv(BUFFER)
+            f.write(content)
+
+        print('200, file uploaded successfully')
+
+    # Rename file
     def renameFile(self, oldname, newname):
         try:
             os.rename(oldname, newname)
@@ -94,6 +113,7 @@ class ftpServer:
                     if sock == self.serverSocket:
                         client_socket, client_address = self.serverSocket.accept()
                         inputSocket.append(client_socket)
+                        print('connected to client: ', client_address)
 
                     else:
                         data = sock.recv(1024)
@@ -120,12 +140,12 @@ class ftpServer:
                             # upload file
                             elif command[0] == 'STOR':
                                 file = command[1]
-                                self.uploadFile(file)
+                                self.uploadFile(file, client_socket)
 
                             # download file
                             elif command[0] == 'RETR':
                                 file = command[1]
-                                self.downloadFile(file)
+                                self.downloadFile(file, client_socket)
 
                         else:
                             sock.close()
@@ -136,3 +156,9 @@ class ftpServer:
             sys.exit(0)
 
 if __name__ == '__main__':
+    host = ' '
+    port = 21
+    user = ' '
+    password = ' '
+
+
