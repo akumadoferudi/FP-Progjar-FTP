@@ -153,16 +153,16 @@ class ClientThread(threading.Thread):
 
     # Change directory (not fix)
     def changeDir(self, path):
-        dir = os.chdir(path)
-        if not dir:
-            self.client.send('500, FAILED TO CHANGE DIRECTORY!')
+        if not os.path.exists(path):
+            self.client.send(bytes('500, FAILED TO CHANGE DIRECTORY!', 'UTF-8'))
         else:
-            self.client.send('200, DIRECTORY CHANGED!')
+            os.chdir(path)
+            self.client.send(bytes('200, DIRECTORY CHANGED!', 'UTF-8'))
 
     # Create a new directory
     def makeDir(self, dirname):
         if os.path.exists(dirname):
-           self.client.send('500, directory already exist')
+            self.client.send('500, directory already exist')
         else:
             os.makedirs(dirname)
             print('200, directory created')
@@ -213,14 +213,14 @@ class ClientThread(threading.Thread):
                     'PWD',
                     'CWD',
                     'STOR',
-                    'RETR'
+                    'RETR',
+                    'HELP'
                 ]
                 command = data.decode().split()
 
                 # this is your choice to command
                 # list all files and directories
                 if command[0] == ftp_command[0]:
-                    # self.getList()
                     list = os.listdir()
                     data = str(list)
                     print(list)
@@ -230,16 +230,21 @@ class ClientThread(threading.Thread):
 
                 # get current directory
                 elif command[0] == ftp_command[1]:
-                    # self.currentDir()
                     pwd = os.getcwd()
                     print('200, SUCCESS!')
-                    self.client.send(pwd.encode())
+                    self.client.send(pwd.encode('UTF-8'))
 
 
                 # change directory
                 elif command[0] == ftp_command[2]:
-                    path = command[1]
-                    self.changeDir(path)
+                    if len(command) == 2:
+                        path = command[1]
+                        if path:
+                            self.changeDir(path)
+                        else:
+                            self.client.send(bytes('500, FAILED TO CHANGE DIRECTORY!', 'UTF-8'))
+                    else:
+                        self.client.send(bytes('500, FAILED TO CHANGE DIRECTORY!', 'UTF-8'))
 
                 # upload file
                 elif command[0] == ftp_command[3]:
@@ -251,6 +256,18 @@ class ClientThread(threading.Thread):
                     file = command[1]
                     self.downloadFile(file, self.client)
 
+                elif command[0] == ftp_command[5]:
+                    get_help = '''
+                    1. LIST :: list all directories and folders
+                    2. PWD :: get current working directory
+                    3. CWD <dir_path> :: change working directory
+                    4. STOR <filename> :: upload file into server
+                    5. RETR <filename> :: download file from server
+                    6. QUIT :: close client connection from server
+                    7. HELP :: get list of ftp command
+                    '''
+                    self.client.send(bytes(get_help, 'UTF-8'))
+
                 elif command[0] not in ftp_command:
                     self.client.send(bytes('500, WRONG COMMAND!', 'UTF-8'))
 
@@ -260,7 +277,7 @@ class ClientThread(threading.Thread):
 
 if __name__ == '__main__':
     host = '10.8.108.142' or '127.0.0.1'
-    port = 8000
+    port = 8080
     user = 'ferdi'
     password = 'ferdi123'
 
