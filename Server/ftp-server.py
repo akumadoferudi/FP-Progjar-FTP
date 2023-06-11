@@ -5,6 +5,7 @@ import select
 import sys
 import os
 import threading
+import time
 
 # sys.path.append('../Client')
 
@@ -170,7 +171,28 @@ class ClientThread(threading.Thread):
                 elif command[0] == ftp_command[5]:
                     if len(command) == 2:
                         file = command[1]
-                        self.uploadFile(file, self.client)
+
+                        # read file from client and store it
+                        with open(f'{file}', 'wb+') as client_file:
+                            real_file = []
+                            while True:
+                                chunk = self.client.recv(2048)
+                                # end of file
+                                if not chunk:
+                                    break
+
+                                real_file.append(chunk)
+                                print('[RECV] buffer or data!')
+                                time.sleep(0.3)
+
+                            for data in real_file:
+                                client_file.write(data)
+
+
+                        print('200, FILE UPLOADED!')
+                        self.client.send(bytes('200, FILE UPLOADED!', 'UTF-8'))
+                    else:
+                        self.client.send(bytes('500, WRONG COMMAND!', 'UTF-8'))
 
                 # 7. download file (not yet)
                 elif command[0] == ftp_command[6]:
