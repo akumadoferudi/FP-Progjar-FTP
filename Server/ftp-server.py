@@ -174,19 +174,16 @@ class ClientThread(threading.Thread):
 
                         # read file from client and store it
                         with open(f'{file}', 'wb+') as client_file:
-                            real_file = []
-                            while True:
-                                chunk = self.client.recv(2048)
-                                # end of file
-                                if not chunk:
-                                    break
+                            print('1234')
+                            data = self.client.recv(4096)
+                            # end of file
 
-                                real_file.append(chunk)
-                                print('[RECV] buffer or data!')
-                                time.sleep(0.3)
+                            client_file.write(data)
+                            # real_file.append(chunk)
+                            print('[RECV] buffer or data!')
 
-                            for data in real_file:
-                                client_file.write(data)
+                            # for data in real_file:
+                            #     client_file.write(data)
 
 
                         print('200, FILE UPLOADED!')

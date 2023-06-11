@@ -36,18 +36,14 @@ while True:
       else:
         client.send(bytes('STOR ' + file, 'UTF-8'))
         with open(file, 'rb') as chunk:
-          while True:
-            data = chunk.read()
+          data = chunk.read()
 
-            if not chunk:
-              break
+          client.sendall(data)
+          print(data)
+          print("[SEND] buffer or data!")
 
-            client.send(data)
-            print(data)
-            print("[SEND] buffer or data!")
         print('200, FILE UPLOADED')
 
-  else:
-    client.send(bytes(out_data, 'UTF-8'))
+  client.send(bytes(out_data, 'UTF-8'))
 
 client.close()
