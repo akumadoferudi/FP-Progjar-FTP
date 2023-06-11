@@ -1,16 +1,13 @@
+# GROUP 12 COMPUTER NETWORKING D
+
 import socket
 import select
 import sys
-import time
 import os
 import threading
 
-# to hadle send list type
-import pickle
+# sys.path.append('../Client')
 
-sys.path.append('../Client')
-
-BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 BUFFER = 1024
 
 class FTPServer:
@@ -30,67 +27,9 @@ class FTPServer:
             self.serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.serverSocket.bind(self.address)
             self.serverSocket.listen(5)
-
             print('bind successfully!')
         except:
             print('failed to bind!')
-        
-    # def loginAuth(self, username, password, sock):
-    #     if username == self.user and password == self.password:
-    #         sock.send('201, LOGIN SUCCESS!')
-    #     else:
-    #         sock.send('500, LOGIN FAILED!')
-    #
-    # # not fix
-    # def getList(self, sock):
-    #     list = os.listdir()
-    #     print(list)
-    #     print('200, success')
-    #
-    # def currentDir(self, sock):
-    #     pwd = os.getcwd()
-    #     print(pwd)
-    #     print('200, SUCCESS!')
-    #
-    # # Change directory (not fix)
-    # def changeDir(self, path, sock):
-    #     try:
-    #         cwd = os.chdir(path)
-    #         print('200, directory changed')
-    #     except:
-    #         print('400, directory not found')
-    #
-    # # Create a new directory
-    # def makeDir(self, dirname, sock):
-    #     if os.path.exists(dirname):
-    #        raise Exception('500, directory already exist')
-    #     else:
-    #         os.makedirs(dirname)
-    #         print('200, directory created')
-    #
-    # # Download file
-    # def downloadFile(self, filename, client_socket):
-    #     with open(filename, 'rb') as f:
-    #         content = f.read()
-    #
-    #     client_socket.sendall(content)
-    #     print('200, file downloaded successfully')
-    #
-    # # Upload file
-    # def uploadFile(self, filename, client_socket):
-    #     with open(filename, 'wb') as f:
-    #         content = client_socket.recv(BUFFER)
-    #         f.write(content)
-    #
-    #     print('200, file uploaded successfully')
-    #
-    # # Rename file
-    # def renameFile(self, oldname, newname, sock):
-    #     try:
-    #         os.rename(oldname, newname)
-    #         print('200, file renamed successfully')
-    #     except:
-    #         print('500, failed to rename file')
 
     def run(self):
         self.bind()
@@ -131,66 +70,6 @@ class ClientThread(threading.Thread):
         self.user = user
         self.password = password
 
-    def loginAuth(self, username, userpass, sock):
-        if username == self.user and userpass == self.password:
-            sock.send('201, LOGIN SUCCESS!')
-        else:
-            sock.send('500, LOGIN FAILED!')
-
-    # not fix
-    def getList(self):
-        list = os.listdir()
-        print(list)
-        print(type(list))
-        # self.client.send(bytes(list))
-        print('200, success')
-
-    def currentDir(self, sock):
-        pwd = os.getcwd()
-        print(pwd)
-        self.client.send(bytes('200, SUCCESS!', 'UTF-8'))
-        self.client.send(bytes(pwd, 'UTF-8'))
-
-    # Change directory (not fix)
-    def changeDir(self, path):
-        if not os.path.exists(path):
-            self.client.send(bytes('500, FAILED TO CHANGE DIRECTORY!', 'UTF-8'))
-        else:
-            os.chdir(path)
-            self.client.send(bytes('200, DIRECTORY CHANGED!', 'UTF-8'))
-
-    # Create a new directory
-    def makeDir(self, dirname):
-        if os.path.exists(dirname):
-            self.client.send('500, directory already exist')
-        else:
-            os.makedirs(dirname)
-            print('200, directory created')
-
-    # Download file
-    def downloadFile(self, filename, client_socket):
-        with open(filename, 'rb') as f:
-            content = f.read()
-
-        client_socket.sendall(content)
-        print('200, file downloaded successfully')
-
-    # Upload file
-    def uploadFile(self, filename):
-        with open(filename, 'wb') as f:
-            content = self.client.recv(BUFFER).decode('UTF-8')
-            f.write(content)
-
-        print('200, file uploaded successfully')
-
-    # Rename file
-    def renameFile(self, oldname, newname):
-        try:
-            os.rename(oldname, newname)
-            print('200, file renamed successfully')
-        except:
-            print('500, failed to rename file')
-
     def run(self):
         auth = self.client.recv(self.buffer).decode('UTF-8')
         login_credentials = 'LOGIN ' + self.user + '' + self.password
@@ -207,64 +86,142 @@ class ClientThread(threading.Thread):
             data = self.client.recv(self.buffer)
             print('received: ', self.address, data.decode())
             if data:
-                # sock.send(data)
+                # list all valid command
                 ftp_command = [
-                    'LIST',
-                    'PWD',
-                    'CWD',
-                    'STOR',
-                    'RETR',
-                    'HELP'
+                    'LIST', 'PWD',
+                    'CWD', 'MKD',
+                    'RMD', 'STOR',
+                    'RETR', 'RNTO',
+                    'DELE', 'HELP'
                 ]
+                # make command per args
                 command = data.decode().split()
 
-                # this is your choice to command
-                # list all files and directories
+                # 1. list all files and directories (fixed)
                 if command[0] == ftp_command[0]:
                     list = os.listdir()
-                    data = str(list)
-                    print(list)
-                    print(type(list))
-                    self.client.send(bytes(data, 'UTF-8'))
-                    print('200, success')
+                    format_list = []
 
-                # get current directory
+                    # check if path is a directory or file
+                    for member in list:
+                        if os.path.isdir(member):
+                            # print(member)
+                            member += '/'
+                            format_list.append(member)
+                        else:
+                            format_list.append(member)
+                            continue
+
+                    data = str(format_list)
+                    self.client.send(bytes("200, SUCCESS\n list dir: " + data, 'UTF-8'))
+                    print('200, SUCCESS!')
+
+                # 2. get current directory (fixed)
                 elif command[0] == ftp_command[1]:
                     pwd = os.getcwd()
+                    self.client.send(bytes("200, SUCCESS!\ncurrent directory: " + pwd, 'UTF-8'))
                     print('200, SUCCESS!')
-                    self.client.send(pwd.encode('UTF-8'))
 
 
-                # change directory
+                # 3. change directory (fixed)
                 elif command[0] == ftp_command[2]:
                     if len(command) == 2:
                         path = command[1]
-                        if path:
-                            self.changeDir(path)
+                        currentdir = os.getcwd()
+                        navigation_dir = currentdir + "\\" + path
+                        if os.path.exists(navigation_dir):
+                            # print(navigation_dir)
+                            os.chdir(path)
+                            self.client.send(bytes('200, DIRECTORY CHANGED!', 'UTF-8'))
+
                         else:
-                            self.client.send(bytes('500, FAILED TO CHANGE DIRECTORY!', 'UTF-8'))
+                            self.client.send(bytes('500, DIRECTORY NOT FOUND!', 'UTF-8'))
                     else:
-                        self.client.send(bytes('500, FAILED TO CHANGE DIRECTORY!', 'UTF-8'))
+                        self.client.send(bytes('500, WRONG COMMAND!', 'UTF-8'))
 
-                # upload file
+                # 4. create new directory (fixed)
                 elif command[0] == ftp_command[3]:
-                    file = command[1]
-                    self.uploadFile(file, self.client)
+                    if len(command) == 2:
+                        dirname = command[1]
+                        if os.path.exists(dirname):
+                            self.client.send(bytes('500, DIRECTORY ALREADY EXIST', 'UTF-8'))
+                        else:
+                            os.makedirs(dirname)
+                            self.client.send(bytes('200, DIRECTORY CREATED!', 'UTF-8'))
+                    else:
+                        self.client.send(bytes('500, WRONG COMMAND!', 'UTF-8'))
 
-                # download file
+                # 5. remove directory (fixed)
                 elif command[0] == ftp_command[4]:
+                    if len(command) == 2:
+                        dirname = command[1]
+                        if not os.path.exists(dirname):
+                            self.client.send(bytes('500, DIRECTORY NOT EXIST!', 'UTF-8'))
+                        elif not os.listdir(dirname): # check if directory was empty
+                            os.rmdir(dirname)
+                            self.client.send(bytes('200, EMPTY DIRECTORY HAS BEEN DELETED!', 'UTF-8'))
+                        else: # if directory was not empty
+                            os.remove(dirname)
+                            self.client.send(bytes('200, DIRECTORY HAS BEEN DELETED!', 'UTF-8'))
+                    else:
+                        self.client.send(bytes('500, WRONG COMMAND!', 'UTF-8'))
+
+                # 6. upload file (not yet)
+                elif command[0] == ftp_command[5]:
+                    if len(command) == 2:
+                        file = command[1]
+                        self.uploadFile(file, self.client)
+
+                # 7. download file (not yet)
+                elif command[0] == ftp_command[6]:
                     file = command[1]
                     self.downloadFile(file, self.client)
 
-                elif command[0] == ftp_command[5]:
+                # 8. rename file (fixed)
+                elif command[0] == ftp_command[7]:
+                    if len(command) == 3:
+                        oldname = command[1]
+                        newname = command[2]
+                        old_filepath = os.getcwd() + "\\" + oldname
+                        new_filepath = os.getcwd() + "\\" + newname
+
+                        if not os.path.exists(old_filepath):
+                            self.client.send(bytes("500, FILE DOESN'T EXIST!", 'UTF-8'))
+                        else:
+                            os.rename(old_filepath, new_filepath)
+                            self.client.send(bytes('200, SUCCESS TO RENAME FILE!', 'UTF-8'))
+                    else:
+                        self.client.send(bytes('500, WRONG COMMAND!', 'UTF-8'))
+
+                # 9. delete file (fixed)
+                elif command[0] == ftp_command[8]:
+                    if len(command) == 2:
+                        filename = command[1]
+
+                        filepath = os.getcwd() + "\\" + filename
+
+                        if not os.path.exists(filepath):
+                            self.client.send(bytes("500, FILE DOESN'T EXIST!", 'UTF-8'))
+                        else:
+                            os.remove(filepath)
+                            self.client.send(bytes('200, FILE DELETED!', 'UTF-8'))
+                    else:
+                        self.client.send(bytes('500, WRONG COMMAND!', 'UTF-8'))
+
+                # get help
+                elif command[0] == ftp_command[9]:
                     get_help = '''
-                    1. LIST :: list all directories and folders
-                    2. PWD :: get current working directory
-                    3. CWD <dir_path> :: change working directory
-                    4. STOR <filename> :: upload file into server
-                    5. RETR <filename> :: download file from server
-                    6. QUIT :: close client connection from server
-                    7. HELP :: get list of ftp command
+                     1. LIST :: list all directories and folders
+                     2. PWD :: get current working directory
+                     3. CWD <dir_path> :: change working directory
+                     4. MKD <dirname> :: create new directory
+                     5. RMD <dirname> :: remove directory
+                     6. STOR <filename> :: upload file into server
+                     7. RETR <filename> :: download file from server
+                     8. RNTO <oldname> <newname> :: change filename
+                     9. DELE <filename> :: delete file
+                    10. QUIT :: close client connection from server
+                    11. HELP :: get list of ftp command
                     '''
                     self.client.send(bytes(get_help, 'UTF-8'))
 
@@ -276,7 +233,7 @@ class ClientThread(threading.Thread):
                 running = 0
 
 if __name__ == '__main__':
-    host = '10.8.108.142' or '127.0.0.1'
+    host = '127.0.0.1'
     port = 8080
     user = 'ferdi'
     password = 'ferdi123'

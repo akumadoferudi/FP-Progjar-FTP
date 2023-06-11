@@ -1,12 +1,17 @@
+# GROUP 12 COMPUTER NETWORKING D
+
 import socket
 
-SERVER = '10.8.108.142'
+SERVER = '127.0.0.1'
 PORT = 8080
 USERNAME = 'ferdi'
 PASSWORD = 'ferdi123'
-# running = 0
+
+# connecting to server
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((SERVER, PORT))
+
+# login onto server
 client.send(bytes('LOGIN ' + USERNAME + '' + PASSWORD, 'UTF-8'))
 
 while True:
