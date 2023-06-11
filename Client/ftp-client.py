@@ -1,6 +1,6 @@
 import socket
 
-SERVER = "127.0.0.1"
+SERVER = '10.8.108.142'
 PORT = 8000
 USERNAME = 'ferdi'
 PASSWORD = 'ferdi123'
@@ -8,6 +8,7 @@ PASSWORD = 'ferdi123'
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect((SERVER, PORT))
 client.send(bytes('LOGIN ' + USERNAME + '' + PASSWORD, 'UTF-8'))
+
 while True:
   in_data =  client.recv(1024)
   print("From Server : ", in_data.decode())

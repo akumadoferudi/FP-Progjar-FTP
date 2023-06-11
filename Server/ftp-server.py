@@ -5,6 +5,9 @@ import time
 import os
 import threading
 
+# to hadle send list type
+import pickle
+
 sys.path.append('../Client')
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -111,43 +114,6 @@ class FTPServer:
                         inputSocket.remove(sock)
                         # data = sock.recv(1024)
                         # print(sock.getpeername(), data)
-                        #
-                        # if data:
-                        #     # sock.send(data)
-                        #     command = data.split()
-                        #
-                        #     # this is your choice to command
-                        #     if command[0] == 'LOGIN':
-                        #         username = command[1]
-                        #         password = command[2]
-                        #         self.loginAuth(username, password, sock)
-                        #
-                        #     # list all files and directories
-                        #     elif command[0] == 'LIST':
-                        #         self.getList()
-                        #
-                        #     # get current directory
-                        #     elif command[0] == 'PWD':
-                        #         self.currentDir()
-                        #
-                        #     # change directory
-                        #     elif command[0] == 'CWD':
-                        #         path = command[1]
-                        #         cwd = self.changeDir(path)
-                        #
-                        #     # upload file
-                        #     elif command[0] == 'STOR':
-                        #         file = command[1]
-                        #         self.uploadFile(file, client_socket)
-                        #
-                        #     # download file
-                        #     elif command[0] == 'RETR':
-                        #         file = command[1]
-                        #         self.downloadFile(file, client_socket)
-
-                        # else:
-                        #     sock.close()
-                        #     self.inputSocket.remove(sock)
 
         except KeyboardInterrupt:
             self.serverSocket.close()
@@ -218,7 +184,7 @@ class ClientThread(threading.Thread):
         print('200, file uploaded successfully')
 
     # Rename file
-    def renameFile(self, oldname, newname, sock):
+    def renameFile(self, oldname, newname):
         try:
             os.rename(oldname, newname)
             print('200, file renamed successfully')
@@ -242,38 +208,50 @@ class ClientThread(threading.Thread):
             print('received: ', self.address, data.decode())
             if data:
                 # sock.send(data)
+                ftp_command = [
+                    'LIST',
+                    'PWD',
+                    'CWD',
+                    'STOR',
+                    'RETR'
+                ]
                 command = data.decode().split()
 
                 # this is your choice to command
                 # list all files and directories
-                if command[0] == 'LIST':
-                    self.getList()
+                if command[0] == ftp_command[0]:
+                    # self.getList()
+                    list = os.listdir()
+                    data = str(list)
+                    print(list)
+                    print(type(list))
+                    self.client.send(bytes(data, 'UTF-8'))
+                    print('200, success')
 
                 # get current directory
-                elif command[0] == 'PWD':
+                elif command[0] == ftp_command[1]:
                     # self.currentDir()
                     pwd = os.getcwd()
-                    print(pwd)
-                    self.client.sendall(bytes(pwd, 'UTF-8'))
-                    self.client.send(bytes('200, SUCCESS!', 'UTF-8'))
+                    print('200, SUCCESS!')
+                    self.client.send(pwd.encode())
 
 
                 # change directory
-                elif command[0] == 'CWD':
+                elif command[0] == ftp_command[2]:
                     path = command[1]
                     self.changeDir(path)
 
                 # upload file
-                elif command[0] == 'STOR':
+                elif command[0] == ftp_command[3]:
                     file = command[1]
                     self.uploadFile(file, self.client)
 
                 # download file
-                elif command[0] == 'RETR':
+                elif command[0] == ftp_command[4]:
                     file = command[1]
                     self.downloadFile(file, self.client)
 
-                else:
+                elif command[0] not in ftp_command:
                     self.client.send(bytes('500, WRONG COMMAND!', 'UTF-8'))
 
             else:
@@ -281,7 +259,7 @@ class ClientThread(threading.Thread):
                 running = 0
 
 if __name__ == '__main__':
-    host = '127.0.0.1'
+    host = '10.8.108.142' or '127.0.0.1'
     port = 8000
     user = 'ferdi'
     password = 'ferdi123'
