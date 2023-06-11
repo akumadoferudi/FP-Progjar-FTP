@@ -32,62 +32,62 @@ class FTPServer:
         except:
             print('failed to bind!')
         
-    def loginAuth(self, username, password, sock):
-        if username == self.user and password == self.password:
-            sock.send('201, LOGIN SUCCESS!')
-        else:
-            sock.send('500, LOGIN FAILED!')
-
-    # not fix
-    def getList(self, sock):
-        list = os.listdir()
-        print(list)
-        print('200, success')
-
-    def currentDir(self, sock):
-        pwd = os.getcwd()
-        print(pwd)
-        print('200, SUCCESS!')
-
-    # Change directory (not fix)
-    def changeDir(self, path, sock):
-        try:
-            cwd = os.chdir(path)
-            print('200, directory changed')
-        except:
-            print('400, directory not found')
-
-    # Create a new directory
-    def makeDir(self, dirname, sock):
-        if os.path.exists(dirname):
-           raise Exception('500, directory already exist')
-        else:
-            os.makedirs(dirname)
-            print('200, directory created')
-
-    # Download file
-    def downloadFile(self, filename, client_socket):
-        with open(filename, 'rb') as f:
-            content = f.read()
-
-        client_socket.sendall(content)
-        print('200, file downloaded successfully')
-
-    # Upload file
-    def uploadFile(self, filename, client_socket):
-        with open(filename, 'wb') as f:
-            content = client_socket.recv(BUFFER)
-            f.write(content)
-
-        print('200, file uploaded successfully')
-
-    # Rename file
-    def renameFile(self, oldname, newname, sock):
-        try:
-            os.rename(oldname, newname)
-            print('200, file renamed successfully')
-        except:
-            print('500, failed to rename file')
+    # def loginAuth(self, username, password, sock):
+    #     if username == self.user and password == self.password:
+    #         sock.send('201, LOGIN SUCCESS!')
+    #     else:
+    #         sock.send('500, LOGIN FAILED!')
+    #
+    # # not fix
+    # def getList(self, sock):
+    #     list = os.listdir()
+    #     print(list)
+    #     print('200, success')
+    #
+    # def currentDir(self, sock):
+    #     pwd = os.getcwd()
+    #     print(pwd)
+    #     print('200, SUCCESS!')
+    #
+    # # Change directory (not fix)
+    # def changeDir(self, path, sock):
+    #     try:
+    #         cwd = os.chdir(path)
+    #         print('200, directory changed')
+    #     except:
+    #         print('400, directory not found')
+    #
+    # # Create a new directory
+    # def makeDir(self, dirname, sock):
+    #     if os.path.exists(dirname):
+    #        raise Exception('500, directory already exist')
+    #     else:
+    #         os.makedirs(dirname)
+    #         print('200, directory created')
+    #
+    # # Download file
+    # def downloadFile(self, filename, client_socket):
+    #     with open(filename, 'rb') as f:
+    #         content = f.read()
+    #
+    #     client_socket.sendall(content)
+    #     print('200, file downloaded successfully')
+    #
+    # # Upload file
+    # def uploadFile(self, filename, client_socket):
+    #     with open(filename, 'wb') as f:
+    #         content = client_socket.recv(BUFFER)
+    #         f.write(content)
+    #
+    #     print('200, file uploaded successfully')
+    #
+    # # Rename file
+    # def renameFile(self, oldname, newname, sock):
+    #     try:
+    #         os.rename(oldname, newname)
+    #         print('200, file renamed successfully')
+    #     except:
+    #         print('500, failed to rename file')
 
     def run(self):
         self.bind()
@@ -95,12 +95,12 @@ class FTPServer:
 
         try:
             while True:
-                readList, writeList, exceptionList = select.select(self.inputSocket, [], [])
+                readList, writeList, exceptionList = select.select(inputSocket, [], [])
 
                 for sock in readList:
                     if sock == self.serverSocket:
                         client_socket, client_address = self.serverSocket.accept()
-                        cThread = ClientThread(client_socket, client_address)
+                        cThread = ClientThread(client_socket, client_address, self.user, self.password)
                         cThread.start()
                         self.threads.append(cThread)
                         inputSocket.append(client_socket)
@@ -108,7 +108,7 @@ class FTPServer:
 
                     else:
                         sock.close()
-                        self.inputSocket.remove(sock)
+                        inputSocket.remove(sock)
                         # data = sock.recv(1024)
                         # print(sock.getpeername(), data)
                         #
@@ -165,35 +165,38 @@ class ClientThread(threading.Thread):
         self.user = user
         self.password = password
 
-    def loginAuth(self, username, password, sock):
-        if username == self.user and password == self.password:
+    def loginAuth(self, username, userpass, sock):
+        if username == self.user and userpass == self.password:
             sock.send('201, LOGIN SUCCESS!')
         else:
             sock.send('500, LOGIN FAILED!')
 
     # not fix
-    def getList(self, sock):
+    def getList(self):
         list = os.listdir()
         print(list)
+        print(type(list))
+        # self.client.send(bytes(list))
         print('200, success')
 
     def currentDir(self, sock):
         pwd = os.getcwd()
         print(pwd)
-        print('200, SUCCESS!')
+        self.client.send(bytes('200, SUCCESS!', 'UTF-8'))
+        self.client.send(bytes(pwd, 'UTF-8'))
 
     # Change directory (not fix)
-    def changeDir(self, path, sock):
-        try:
-            cwd = os.chdir(path)
-            print('200, directory changed')
-        except:
-            print('400, directory not found')
+    def changeDir(self, path):
+        dir = os.chdir(path)
+        if not dir:
+            self.client.send('500, FAILED TO CHANGE DIRECTORY!')
+        else:
+            self.client.send('200, DIRECTORY CHANGED!')
 
     # Create a new directory
-    def makeDir(self, dirname, sock):
+    def makeDir(self, dirname):
         if os.path.exists(dirname):
-           raise Exception('500, directory already exist')
+           self.client.send('500, directory already exist')
         else:
             os.makedirs(dirname)
             print('200, directory created')
@@ -207,9 +210,9 @@ class ClientThread(threading.Thread):
         print('200, file downloaded successfully')
 
     # Upload file
-    def uploadFile(self, filename, client_socket):
+    def uploadFile(self, filename):
         with open(filename, 'wb') as f:
-            content = client_socket.recv(BUFFER)
+            content = self.client.recv(BUFFER).decode('UTF-8')
             f.write(content)
 
         print('200, file uploaded successfully')
@@ -224,59 +227,67 @@ class ClientThread(threading.Thread):
 
     def run(self):
         auth = self.client.recv(self.buffer).decode('UTF-8')
-        loginCredentials = 'LOGIN ' + self.user + '' + self.password
+        login_credentials = 'LOGIN ' + self.user + '' + self.password
 
-        if auth == loginCredentials:
-            self.client.send('201, LOGIN SUCCESS!')
+        if auth == login_credentials:
+            self.client.send(bytes('201, LOGIN SUCCESS!', 'UTF-8'))
             running = 1
         else:
-            self.client.send('500, LOGIN FAILED!')
+            self.client.send(bytes('500, LOGIN FAILED!', 'UTF-8'))
             self.client.close()
             running = 0
 
         while running:
             data = self.client.recv(self.buffer)
-            print('received: ', self.address, data)
+            print('received: ', self.address, data.decode())
             if data:
                 # sock.send(data)
-                command = data.split()
+                command = data.decode().split()
 
                 # this is your choice to command
-                if command[0] == 'LOGIN':
-                    username = command[1]
-                    password = command[2]
-                    self.loginAuth(username, password, sock)
-
                 # list all files and directories
-                elif command[0] == 'LIST':
+                if command[0] == 'LIST':
                     self.getList()
 
                 # get current directory
                 elif command[0] == 'PWD':
-                    self.currentDir()
+                    # self.currentDir()
+                    pwd = os.getcwd()
+                    print(pwd)
+                    self.client.sendall(bytes(pwd, 'UTF-8'))
+                    self.client.send(bytes('200, SUCCESS!', 'UTF-8'))
+
 
                 # change directory
                 elif command[0] == 'CWD':
                     path = command[1]
-                    cwd = self.changeDir(path)
+                    self.changeDir(path)
 
                 # upload file
                 elif command[0] == 'STOR':
                     file = command[1]
-                    self.uploadFile(file, client_socket)
+                    self.uploadFile(file, self.client)
 
                 # download file
                 elif command[0] == 'RETR':
                     file = command[1]
-                    self.downloadFile(file, client_socket)
+                    self.downloadFile(file, self.client)
+
+                else:
+                    self.client.send(bytes('500, WRONG COMMAND!', 'UTF-8'))
+
             else:
                 self.client.close()
                 running = 0
 
 if __name__ == '__main__':
-    host = ' '
-    port = 21
-    user = ' '
-    password = ' '
+    host = '127.0.0.1'
+    port = 8000
+    user = 'ferdi'
+    password = 'ferdi123'
+
+    Server = FTPServer(host, port, user, password)
+    Server.run()
+
 
 
