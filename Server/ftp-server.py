@@ -73,7 +73,7 @@ class ClientThread(threading.Thread):
 
     def run(self):
         auth = self.client.recv(self.buffer).decode('UTF-8')
-        login_credentials = 'LOGIN ' + self.user + '' + self.password
+        login_credentials = 'LOGIN@' + self.user + '@' + self.password
 
         if auth == login_credentials:
             self.client.send(bytes('201, LOGIN SUCCESS!', 'UTF-8'))
@@ -96,7 +96,7 @@ class ClientThread(threading.Thread):
                     'DELE', 'HELP'
                 ]
                 # make command per args
-                command = data.decode().split()
+                command = data.decode().split('@')
 
                 # 1. list all files and directories (fixed)
                 if command[0] == ftp_command[0]:
@@ -169,23 +169,26 @@ class ClientThread(threading.Thread):
 
                 # 6. upload file (not yet)
                 elif command[0] == ftp_command[5]:
-                    if len(command) == 2:
+                    if len(command) > 2:
                         file = command[1]
+                        file_data = command[2]
 
                         # read file from client and store it
-                        with open(f'{file}', 'wb+') as client_file:
-                            print('1234')
-                            data = self.client.recv(4096)
-                            # end of file
+                        # client_file = open(file, 'wb+')
+                        # time.sleep(1)
+                        # chunk = self.client.recv(1024)
+                        # client_file.write(chunk)
+                        # print(chunk.decode())
 
-                            client_file.write(data)
-                            # real_file.append(chunk)
-                            print('[RECV] buffer or data!')
+                        # with open(file, 'wb+') as f:
+                        #     byte_data = file_data
+                        #     f.write(bytes(byte_data, 'UTF-8'))
 
-                            # for data in real_file:
-                            #     client_file.write(data)
-
-
+                        time.sleep(3)
+                        byte_data = bytes(file_data, 'UTF-8')
+                        f = open(file, 'wb+')
+                        f.write(byte_data)
+                        print("[RECV] buffer or data!")
                         print('200, FILE UPLOADED!')
                         self.client.send(bytes('200, FILE UPLOADED!', 'UTF-8'))
                     else:
@@ -232,13 +235,13 @@ class ClientThread(threading.Thread):
                     get_help = '''
                      1. LIST :: list all directories and folders
                      2. PWD :: get current working directory
-                     3. CWD <dir_path> :: change working directory
-                     4. MKD <dirname> :: create new directory
-                     5. RMD <dirname> :: remove directory
-                     6. STOR <filename> :: upload file into server
-                     7. RETR <filename> :: download file from server
-                     8. RNTO <oldname> <newname> :: change filename
-                     9. DELE <filename> :: delete file
+                     3. CWD@<dir_path> :: change working directory
+                     4. MKD@<dirname> :: create new directory
+                     5. RMD@<dirname> :: remove directory
+                     6. STOR@<filename> :: upload file into server
+                     7. RETR@<filename> :: download file from server
+                     8. RNTO@<oldname> <newname> :: change filename
+                     9. DELE@<filename> :: delete file
                     10. QUIT :: close client connection from server
                     11. HELP :: get list of ftp command
                     '''
