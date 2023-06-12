@@ -36,16 +36,6 @@ while True:
         print('500, FILE NOT FOUND!')
 
       else:
-        # client.send(bytes('STOR ' + file, 'UTF-8'))
-        # local_file = open(file, 'rb')
-        # chunk = local_file.read()
-        # client.send(chunk)
-        # print(chunk.decode())
-        # print("[SEND] buffer or data!")
-
-        # with open(filepath, 'rb') as f:
-        #   chunk = f.read()
-
         f = open(filepath, 'rb')
         chunk = f.read()
 
@@ -54,21 +44,11 @@ while True:
         command_file = 'STOR@' + file + '@' + chunk.decode()
         print(command_file)
         client.send(command_file.encode('UTF-8'))
-          # while chunk is not None:
-          #   client.send(chunk)
-          #   print("[SEND] buffer or data!")
-          #   time.sleep(1)
-
-
-        # while chunk != "":
-        #   chunk = local_file.read(1024)
-        #   client.send(chunk)
-        #   print(chunk.decode())
-        #   print("[SEND] buffer or data!")
-        #   time.sleep(0.5)
 
         print('200, FILE UPLOADED')
         # client.send(bytes('200, FILE UPLOADED!', 'UTF-8'))
+
+  elif command[0] == 'RECV':
 
   client.send(bytes(out_data, 'UTF-8'))
 

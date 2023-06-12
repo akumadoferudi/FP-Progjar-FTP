@@ -167,30 +167,19 @@ class ClientThread(threading.Thread):
                     else:
                         self.client.send(bytes('500, WRONG COMMAND!', 'UTF-8'))
 
-                # 6. upload file (not yet)
+                # 6. upload file (fix, cuman masalah jaringan)
                 elif command[0] == ftp_command[5]:
                     if len(command) > 2:
                         file = command[1]
                         file_data = command[2]
 
-                        # read file from client and store it
-                        # client_file = open(file, 'wb+')
-                        # time.sleep(1)
-                        # chunk = self.client.recv(1024)
-                        # client_file.write(chunk)
-                        # print(chunk.decode())
-
-                        # with open(file, 'wb+') as f:
-                        #     byte_data = file_data
-                        #     f.write(bytes(byte_data, 'UTF-8'))
-
-                        time.sleep(3)
                         byte_data = bytes(file_data, 'UTF-8')
                         f = open(file, 'wb+')
                         f.write(byte_data)
                         print("[RECV] buffer or data!")
                         print('200, FILE UPLOADED!')
                         self.client.send(bytes('200, FILE UPLOADED!', 'UTF-8'))
+                        break
                     else:
                         self.client.send(bytes('500, WRONG COMMAND!', 'UTF-8'))
 
